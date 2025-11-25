@@ -1,0 +1,123 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+//
+// ENUMS
+//
+
+/// Format de stockage du contenu de la note
+enum NoteFormat {
+  MARKDOWN   // format par défaut (comme tu l'as demandé)
+  RICH_TEXT  // pour plus tard si tu veux stocker du JSON riche
+}
+
+/// État de la note (utile pour archive / corbeille)
+enum NoteStatus {
+  ACTIVE
+  ARCHIVED
+  TRASHED
+}
+
+//
+// MODELS
+//
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  notes   Note[]
+  folders Folder[]
+  tags    Tag[]
+}
+
+model Note {
+  id        String      @id @default(uuid())
+  title     String
+  content   String      // contenu brut (markdown ou autre)
+  format    NoteFormat  @default(MARKDOWN)
+  isPinned  Boolean     @default(false)
+  status    NoteStatus  @default(ACTIVE)
+
+  userId   String
+  folderId String?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  archivedAt DateTime?
+  deletedAt  DateTime?
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  tags NoteTag[]
+
+  @@index([userId])
+  @@index([folderId])
+  @@index([status])
+  @@index([isPinned])
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // self-relation pour les sous-dossiers
+  parent   Folder?   @relation("FolderChildren", fields: [parentId], references: [id])
+  children Folder[]  @relation("FolderChildren")
+
+  notes Note[]
+
+  @@index([userId])
+  @@index([parentId])
+  // Un dossier de même nom ne peut pas exister deux fois au même endroit pour un user
+  @@unique([userId, parentId, name])
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String
+  color     String?  // hex type "#RRGGBB" (optionnel)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes NoteTag[]
+
+  @@index([userId])
+  // Un tag avec le même nom ne peut pas exister deux fois pour un user
+  @@unique([userId, name])
+}
+
+/// Table de jointure Note <-> Tag
+model NoteTag {
+  noteId String
+  tagId  String
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@index([tagId])
+}
