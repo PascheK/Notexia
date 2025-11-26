@@ -1,4 +1,6 @@
-import { IsOptional, IsString } from 'class-validator';
+// apps/api/src/notes/dto/update-note.dto.ts
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { NoteFormat, NoteStatus } from '@prisma/client';
 
 export class UpdateNoteDto {
   @IsOptional()
@@ -10,6 +12,18 @@ export class UpdateNoteDto {
   content?: string;
 
   @IsOptional()
-  @IsString()
+  @IsEnum(NoteFormat)
+  format?: NoteFormat;
+
+  @IsOptional()
+  @IsEnum(NoteStatus)
+  status?: NoteStatus;
+
+  @IsOptional()
+  @IsBoolean()
+  isPinned?: boolean;
+
+  @IsOptional()
+  @IsUUID()
   folderId?: string;
 }

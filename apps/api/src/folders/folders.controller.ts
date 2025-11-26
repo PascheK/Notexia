@@ -1,34 +1,60 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+// apps/api/src/folders/folders.controller.ts
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
+import { FoldersService } from './folders.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
-import { FoldersService } from './folders.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @Controller('folders')
+@UseGuards(JwtAuthGuard)
 export class FoldersController {
   constructor(private readonly foldersService: FoldersService) {}
 
   @Post()
-  create(@Body() dto: CreateFolderDto) {
-    return this.foldersService.create(dto);
+  create(
+    @CurrentUser() user: { userId: string; email: string },
+    @Body() dto: CreateFolderDto,
+  ) {
+    return this.foldersService.create(user.userId, dto);
   }
 
-  @Get()
-  findAll() {
-    return this.foldersService.findAll();
+  @Get('tree')
+  findTree(@CurrentUser() user: { userId: string; email: string }) {
+    return this.foldersService.findTree(user.userId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.foldersService.findOne(id);
+  findOne(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('id') id: string,
+  ) {
+    return this.foldersService.findOne(user.userId, id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateFolderDto) {
-    return this.foldersService.update(id, dto);
+  update(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('id') id: string,
+    @Body() dto: UpdateFolderDto,
+  ) {
+    return this.foldersService.update(user.userId, id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.foldersService.remove(id);
+  remove(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('id') id: string,
+  ) {
+    return this.foldersService.remove(user.userId, id);
   }
 }
