@@ -1,7 +1,8 @@
 
 generator client {
-  provider = "prisma-client-js"
-}
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  }
 
 datasource db {
   provider = "postgresql"
@@ -23,6 +24,12 @@ enum NoteStatus {
   ARCHIVED
   TRASHED
 }
+// Type du vault de la connexion
+enum VaultType {
+  REMOTE
+  LOCAL_DESKTOP
+  LOCAL_BROWSER
+}
 
 //
 // MODELS
@@ -40,6 +47,8 @@ model User {
   notes   Note[]
   folders Folder[]
   tags    Tag[]
+  vaults Vault[]
+
 }
 
 model Note {
@@ -53,6 +62,10 @@ model Note {
   userId   String
   folderId String?
 
+  vault   Vault?  @relation(fields: [vaultId], references: [id])
+  vaultId String?
+  path    String? 
+  
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   archivedAt DateTime?
@@ -86,7 +99,6 @@ model Folder {
   children Folder[]  @relation("FolderChildren")
 
   notes Note[]
-
   @@index([userId])
   @@index([parentId])
   // Un dossier de même nom ne peut pas exister deux fois au même endroit pour un user
@@ -120,4 +132,18 @@ model NoteTag {
 
   @@id([noteId, tagId])
   @@index([tagId])
+}
+
+model Vault {
+  id        String    @id @default(uuid())
+  name      String
+  type      VaultType @default(REMOTE)
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  notes  Note[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

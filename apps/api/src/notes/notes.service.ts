@@ -8,14 +8,38 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { QueryNotesDto } from './dto/query-notes.dto';
-import { NoteStatus } from '@prisma/client';
+import { NoteStatus, VaultType } from '../../generated/prisma/client';
+
 import { AddTagsDto } from './dto/add-tags.dto';
 
 @Injectable()
 export class NotesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async getOrCreateDefaultVault(userId: string) {
+    let vault = await this.prisma.vault.findFirst({
+      where: {
+        userId,
+        type: VaultType.REMOTE,
+      },
+    });
+
+    if (!vault) {
+      vault = await this.prisma.vault.create({
+        data: {
+          userId,
+          name: 'Default',
+          type: VaultType.REMOTE,
+        },
+      });
+    }
+
+    return vault;
+  }
+
   async create(userId: string, dto: CreateNoteDto) {
+    const vault = await this.getOrCreateDefaultVault(userId);
+
     const note = await this.prisma.note.create({
       data: {
         title: dto.title,
@@ -24,6 +48,8 @@ export class NotesService {
         status: dto.status ?? NoteStatus.ACTIVE,
         userId,
         folderId: dto.folderId ?? null,
+        vaultId: vault.id,
+        path: null,
       },
     });
 
@@ -126,8 +152,7 @@ export class NotesService {
         format: dto.format ?? existing.format,
         status: dto.status ?? existing.status,
         isPinned: dto.isPinned ?? existing.isPinned,
-        folderId:
-          dto.folderId === undefined ? existing.folderId : dto.folderId,
+        folderId: dto.folderId === undefined ? existing.folderId : dto.folderId,
       },
       include: {
         tags: {

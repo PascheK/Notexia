@@ -1,26 +1,81 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --nx-theme-name: "Notexia Dark";
+  --nx-background: #0b0f16;
+  --nx-foreground: #e5e7eb;
+  --nx-primary: #7c3aed;
+  --nx-primary-foreground: #0b0f16;
+  --nx-accent: #38bdf8;
+  --nx-accent-foreground: #04121c;
+  --nx-accent-warm: #f59e0b;
+  --nx-accent-info: #38bdf8;
+  --nx-border: #1f2937;
+  --nx-muted: #0f172a;
+  --nx-muted-foreground: #9ca3af;
+  --nx-surface: #111827;
+  --nx-surface-muted: #0f172a;
+  --nx-sidebar-bg: #0a0e16;
+  --nx-sidebar-border: #111827;
+  --nx-editor-bg: #111827;
+  --nx-radius: 8px;
+  --nx-radius-lg: 12px;
+  --nx-radius-xl: 18px;
+  --nx-sidebar-width: 22%;
+  --nx-notes-pane-min-width: 320px;
+  --nx-editor-pane-min-width: 480px;
+  --nx-font-body: var(--font-geist-sans), "Inter", system-ui, -apple-system, sans-serif;
+  --nx-font-mono: var(--font-geist-mono), "SFMono-Regular", Menlo, monospace;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--nx-background);
+  --color-foreground: var(--nx-foreground);
+  --color-card: var(--nx-surface);
+  --color-card-foreground: var(--nx-foreground);
+  --color-popover: var(--nx-surface);
+  --color-popover-foreground: var(--nx-foreground);
+  --color-muted: var(--nx-muted);
+  --color-muted-foreground: var(--nx-muted-foreground);
+  --color-border: var(--nx-border);
+  --color-input: var(--nx-border);
+  --color-primary: var(--nx-primary);
+  --color-primary-foreground: var(--nx-primary-foreground);
+  --color-accent: var(--nx-accent);
+  --color-accent-foreground: var(--nx-accent-foreground);
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #0b1220;
+  --color-ring: var(--nx-primary);
+  --color-sidebar: var(--nx-sidebar-bg);
+  --color-editor: var(--nx-editor-bg);
+  --color-surface: var(--nx-surface);
+  --color-surface-muted: var(--nx-surface-muted);
+  --radius-sm: var(--nx-radius);
+  --radius-md: var(--nx-radius-lg);
+  --radius-lg: var(--nx-radius-xl);
+  --font-sans: var(--nx-font-body);
+  --font-mono: var(--nx-font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html,
+  body {
+    height: 100%;
+    background: var(--nx-background);
+  }
+
+  body {
+    @apply text-foreground antialiased;
+    font-family: var(--nx-font-body);
+  }
+
+  ::selection {
+    background-color: var(--nx-primary);
+    color: var(--nx-primary-foreground);
+  }
 }
