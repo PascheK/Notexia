@@ -1,0 +1,14 @@
+{
+  "extends": "@repo/typescript-config/react-vite",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@repo/core": ["../../packages/core/src"],
+      "@repo/core/*": ["../../packages/core/src/*"],
+      "@repo/protocol": ["../../packages/protocol/src"],
+      "@repo/protocol/*": ["../../packages/protocol/src/*"]
+    }
+  },
+  "include": ["src", "vite-env.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

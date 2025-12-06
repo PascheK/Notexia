@@ -11,8 +11,9 @@ import {
   type NoteFile,
   type FsEntry
 } from "@/platform/tauri/fs-adapter";
-import { renameEntry as moveRenameEntry } from "@/lib/fs-actions";
+import { renameEntry as moveRenameEntry } from "@/lib/fsTree";
 import { loadAppConfig, updateAppConfig } from "@/platform/config/appConfig";
+import { useEditorStore } from "./editorStore";
 
 type Tab = {
   id: string;
@@ -308,6 +309,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
 
     try {
       const newPath = await moveRenameEntry(oldPath, targetName);
+      useEditorStore.getState().renameTabsForPath(oldPath, newPath, targetName);
 
       set((state) => {
         const updatePath = (value: string | null) => {
@@ -428,6 +430,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
               targetPath.startsWith(`${path}\\`))));
 
       await deleteEntryOnDisk(path);
+      useEditorStore.getState().removeTabsForPath(path);
 
       set((state) => {
 

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { SetupWizard } from "@/app/SetupWizard";
 import { DesktopRoot } from "@/app/DesktopRoot";
 import {
   type AppConfig,
@@ -12,6 +11,7 @@ import {
   upsertSpace,
   type SpaceRegistryEntry
 } from "@/config/space-registry";
+import { SetupWizard } from "@/components/wizard/WizardRoot";
 
 type AppState =
   | { status: "loading" }

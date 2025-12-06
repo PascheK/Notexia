@@ -1,4 +1,4 @@
-import type { FsEntry } from "@/platform/tauri/fs-adapter";
+import { renameNote, type FsEntry } from "@/platform/tauri/fs-adapter";
 
 export type TreeNode = {
   name: string;
@@ -60,3 +60,15 @@ export function buildTree(entries: FsEntry[]): TreeNode[] {
   return toArray(root);
 }
 
+export async function renameEntry(
+  oldPath: string,
+  newName: string
+): Promise<string> {
+  const trimmed = newName.trim();
+  if (!trimmed) {
+    throw new Error("Name cannot be empty");
+  }
+
+  const baseName = trimmed.split(/[/\\]/).filter(Boolean).pop() ?? trimmed;
+  return renameNote(oldPath, baseName);
+}
