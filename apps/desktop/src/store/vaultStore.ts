@@ -400,7 +400,31 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   createFolder: async (parentPath: string, name: string) => {
     const base = parentPath || get().vaultPath;
     const trimmed = name.trim();
-    if (!base || !trimmed) return;
+    const hasNotexiaSegment = (path: string) =>
+      path.split(/[/\\]/).includes(".notexia");
+    const hasSeparator = /[\\/]/.test(trimmed);
+
+    if (!base) {
+      if (import.meta.env.DEV) {
+        console.warn("[vaultStore] createFolder called without base path");
+      }
+      return;
+    }
+
+    if (!trimmed) {
+      set({ error: "Nom de dossier vide" });
+      return;
+    }
+
+    if (trimmed === ".notexia" || hasNotexiaSegment(base)) {
+      set({ error: "Le dossier .notexia est réservé" });
+      return;
+    }
+
+    if (hasSeparator) {
+      set({ error: "Le nom du dossier ne peut pas contenir de slash (/ ou \\)" });
+      return;
+    }
 
     try {
       await createDirectory(base, trimmed);

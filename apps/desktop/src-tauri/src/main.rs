@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use chrono::Utc;
+use std::ffi::OsStr;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -56,8 +57,8 @@ fn walk_dir(base: &Path, current: &Path, acc: &mut Vec<FsEntry>) -> Result<(), S
             .to_string_lossy()
             .to_string();
 
-        // Ignore internal folders
-        if is_dir && name == ".notexia" || name == ".obsidian" {
+        // Ignore hidden files/folders (starting with .)
+        if name.starts_with('.') {
             continue;
         }
 
@@ -93,6 +94,10 @@ fn walk_dir(base: &Path, current: &Path, acc: &mut Vec<FsEntry>) -> Result<(), S
 
 fn is_descendant(parent: &Path, child: &Path) -> bool {
     child.starts_with(parent)
+}
+
+fn path_contains_notexia(path: &Path) -> bool {
+    path.components().any(|c| c.as_os_str() == OsStr::new(".notexia"))
 }
 
 fn main() {
@@ -186,25 +191,36 @@ fn rename_note(old_path: String, new_name: String) -> Result<String, String> {
 
 #[tauri::command]
 fn create_directory(parentPath: String, name: String) -> Result<String, String> {
-    let mut new_path = PathBuf::from(&parentPath);
-    if !new_path.is_dir() {
+    let parent = PathBuf::from(&parentPath);
+    if !parent.is_dir() {
         return Err("Parent path is not a directory".into());
     }
 
-    if name.trim().is_empty() {
+    if path_contains_notexia(&parent) {
+        return Err("Operations inside .notexia are not allowed".into());
+    }
+
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
         return Err("Directory name cannot be empty".into());
     }
 
-    new_path.push(name);
+    if trimmed == ".notexia" {
+        return Err("Directory name .notexia is reserved".into());
+    }
 
-    let file_name = new_path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
+    if trimmed.starts_with('.') {
+        return Err("Cannot create hidden directory".into());
+    }
 
-    if file_name == ".notexia" {
-        return Err("Cannot create directory inside .notexia".into());
+    if trimmed.contains(['/', '\\']) {
+        return Err("Directory name cannot contain path separators".into());
+    }
+
+    let new_path = parent.join(trimmed);
+
+    if new_path.exists() {
+        return Err("A directory with this name already exists".into());
     }
 
     fs::create_dir_all(&new_path).map_err(|e| e.to_string())?;
@@ -223,9 +239,17 @@ fn move_entry(
         return Err("Source path does not exist".into());
     }
 
+    if path_contains_notexia(&old) {
+        return Err("Operations inside .notexia are not allowed".into());
+    }
+
     let new_parent = PathBuf::from(&new_parent_path);
     if !new_parent.is_dir() {
         return Err("Target parent is not a directory".into());
+    }
+
+    if path_contains_notexia(&new_parent) {
+        return Err("Operations inside .notexia are not allowed".into());
     }
 
     let base_name = new_name.unwrap_or_else(|| {
@@ -235,15 +259,25 @@ fn move_entry(
             .to_string()
     });
 
-    if base_name.trim().is_empty() {
+    let trimmed_name = base_name.trim();
+
+    if trimmed_name.is_empty() {
         return Err("Target name cannot be empty".into());
     }
 
-    if base_name == ".notexia" || new_parent.ends_with(".notexia") {
+    if trimmed_name.contains(['/', '\\']) {
+        return Err("Target name cannot contain path separators".into());
+    }
+
+    if trimmed_name == ".notexia" {
         return Err("Operations inside .notexia are not allowed".into());
     }
 
-    let new_path = new_parent.join(&base_name);
+    let new_path = new_parent.join(trimmed_name);
+
+    if path_contains_notexia(&new_path) {
+        return Err("Operations inside .notexia are not allowed".into());
+    }
 
     if new_path == old {
         return Ok(new_path.to_string_lossy().to_string());

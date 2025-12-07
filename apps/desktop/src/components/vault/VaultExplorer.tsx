@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,14 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -124,13 +132,37 @@ export function VaultExplorer() {
     await createNote(base);
   };
 
+  const generateUniqueFolderName = (baseName: string, existingNames: string[]): string => {
+    if (!existingNames.includes(baseName)) {
+      return baseName;
+    }
+
+    let counter = 1;
+    while (existingNames.includes(`${baseName}-${counter}`)) {
+      counter++;
+    }
+
+    return `${baseName}-${counter}`;
+  };
+
   const handleCreateFolder = async (target?: FsNode | null) => {
     const base = resolveParentDir(target);
     if (!base) return;
-    const name = window.prompt("Nom du dossier");
-    console.log(name);
-    if (!name) return;
-    await createFolder(base, name);
+
+    // Get existing folder names in the parent directory
+    let existingNames: string[] = [];
+    
+    if (base === vaultPath) {
+      // At root level: get all top-level items in tree
+      existingNames = tree.map((node) => node.name);
+    } else {
+      // In a subdirectory: find the parent node and get its children
+      const parentNode = tree.find((node) => node.path === base);
+      existingNames = parentNode?.children?.map((child) => child.name) ?? [];
+    }
+
+    const uniqueName = generateUniqueFolderName("nouveau-dossier", existingNames);
+    await createFolder(base, uniqueName);
   };
 
   const handleSubmitRename = async (
@@ -195,8 +227,6 @@ export function VaultExplorer() {
       setExpandedPaths(new Set(dirPaths));
       setAllExpanded(true);
     }
-    console.log(vaultPath);
-    console.log(allExpanded);
   };
 
   useEffect(() => {
