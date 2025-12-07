@@ -1,4 +1,6 @@
 import type React from "react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +12,7 @@ import {
 } from "lucide-react";
 
 import type { FsNode } from "@/lib/explorer/tree";
+import { explorerIdFromPath, type ExplorerDndItem } from "@/lib/explorer/dnd-model";
 
 type NodeItemProps = {
   node: FsNode;
@@ -97,6 +100,36 @@ export function ExplorerNodeItem({
     : "Inconnue";
   const tooltipText = `Nom : ${node.name}\nCréé le ${createdLabel}\nModifié le ${modifiedLabel}`;
 
+  // DnD: make all nodes draggable
+  const draggable = useDraggable({
+    id: explorerIdFromPath(node.path),
+    data: {
+      type: node.isDir ? "folder" : "file",
+      path: node.path,
+      relPath: node.relPath || node.name,
+    } satisfies ExplorerDndItem,
+  });
+
+  // DnD: make folders droppable
+  const droppable = useDroppable({
+    id: explorerIdFromPath(node.path),
+    data: node.isDir ? ({
+      type: "folder",
+      path: node.path,
+      relPath: node.relPath || node.name,
+    } satisfies ExplorerDndItem) : undefined,
+    disabled: !node.isDir,
+  });
+
+  const isDragging = draggable.isDragging;
+  const isOverDrop = droppable.isOver;
+  const transform = draggable.transform;
+  
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   const handleClick = () => {
     if (node.isDir) {
       onToggleExpand(node.path);
@@ -106,9 +139,21 @@ export function ExplorerNodeItem({
   };
 
   const paddingLeft = 10 + depth * 14;
+  
+  // Merge refs if both draggable and droppable
+  const setNodeRef = (el: HTMLElement | null) => {
+    draggable.setNodeRef(el);
+    if (node.isDir) {
+      droppable.setNodeRef(el);
+    }
+  };
+
   return (
-    <div>
+    <div style={style}>
       <div
+        ref={setNodeRef}
+        {...draggable.attributes}
+        {...draggable.listeners}
         role="button"
         tabIndex={0}
         data-fs-node="true"
@@ -118,6 +163,7 @@ export function ExplorerNodeItem({
           isActive
             ? "bg-app-accent-soft/60 text-app-fg border border-app-border/50"
             : "text-app-fg-muted hover:bg-app-surface-alt hover:text-app-fg",
+          isOverDrop && node.isDir && "bg-app-accent/10 border border-app-accent/40",
         ].join(" ")}
         style={{ paddingLeft }}
         onContextMenu={(e) => onContextMenu(e, node)}

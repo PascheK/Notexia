@@ -1,7 +1,14 @@
+import { useDroppable } from "@dnd-kit/core";
 import { NoteEditor } from "@/components/note/NoteEditor";
 import { NoteViewer } from "@/components/note/NoteViewer";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEditorStore } from "@/store/editorStore";
+import {
+  EDITOR_CENTER_DROP_ID,
+  EDITOR_RIGHT_DROP_ID,
+  EDITOR_BOTTOM_DROP_ID,
+  type EditorDropZoneData,
+} from "@/lib/explorer/dnd-model";
 
 type EditorLayoutProps = {
   mode: "view" | "edit";
@@ -18,6 +25,22 @@ export function EditorLayout({ mode }: EditorLayoutProps) {
   const updateTabContent = useEditorStore((s) => s.updateTabContent);
   const saveTab = useEditorStore((s) => s.saveTab);
 
+  // DnD: drop zones for editor
+  const centerDrop = useDroppable({
+    id: EDITOR_CENTER_DROP_ID,
+    data: { disposition: "replace" } satisfies EditorDropZoneData,
+  });
+
+  const rightDrop = useDroppable({
+    id: EDITOR_RIGHT_DROP_ID,
+    data: { disposition: "split-right" } satisfies EditorDropZoneData,
+  });
+
+  const bottomDrop = useDroppable({
+    id: EDITOR_BOTTOM_DROP_ID,
+    data: { disposition: "split-down" } satisfies EditorDropZoneData,
+  });
+
   const orientation = layout.orientation ?? "single";
   const hasSecondPane = layout.panes.length > 1;
   const gridClass = hasSecondPane
@@ -27,7 +50,33 @@ export function EditorLayout({ mode }: EditorLayoutProps) {
     : "grid grid-cols-1";
 
   return (
-    <div className={`h-full w-full ${gridClass} gap-2`}>
+    <div className={`h-full w-full ${gridClass} gap-2 relative`}>
+      {/* DnD drop zones */}
+      <div
+        ref={centerDrop.setNodeRef}
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          backgroundColor: centerDrop.isOver ? "rgba(110,86,207,0.08)" : undefined,
+          border: centerDrop.isOver ? "2px dashed rgb(110,86,207)" : undefined,
+        }}
+      />
+      <div
+        ref={rightDrop.setNodeRef}
+        className="absolute right-0 top-0 bottom-0 w-[15%] pointer-events-auto z-10"
+        style={{
+          backgroundColor: rightDrop.isOver ? "rgba(110,86,207,0.15)" : undefined,
+          borderLeft: rightDrop.isOver ? "2px solid rgb(110,86,207)" : undefined,
+        }}
+      />
+      <div
+        ref={bottomDrop.setNodeRef}
+        className="absolute left-0 right-0 bottom-0 h-[15%] pointer-events-auto z-10"
+        style={{
+          backgroundColor: bottomDrop.isOver ? "rgba(110,86,207,0.15)" : undefined,
+          borderTop: bottomDrop.isOver ? "2px solid rgb(110,86,207)" : undefined,
+        }}
+      />
+
       {layout.panes.map((pane) => {
         const activeTab =
           pane.activeTabId && tabsById[pane.activeTabId]
@@ -45,9 +94,7 @@ export function EditorLayout({ mode }: EditorLayoutProps) {
         return (
           <div
             key={pane.id}
-            className="flex flex-col min-h-0 rounded-lg border border-app-border bg-app-surface overflow-hidden"
-            onClick={() => setActivePane(pane.id)}
-          >
+            className="relative z-20 flex flex-col bg-app-surface border border-app-border/40 rounded-lg overflow-hidden">
             <div className="flex items-center gap-1 px-2 py-1.5 border-b border-app-border/60 bg-app-surface-alt">
               <Tabs
                 value={pane.activeTabId ?? pane.tabs[0] ?? "empty"}
@@ -65,7 +112,7 @@ export function EditorLayout({ mode }: EditorLayoutProps) {
                         value={tabId}
                         className="group h-8 px-3 gap-2 text-[11px] data-[state=active]:bg-app-surface data-[state=active]:border data-[state=active]:border-app-border data-[state=active]:text-app-fg text-app-fg-muted hover:text-app-fg rounded-md transition-colors flex items-center"
                       >
-                        <span className="truncate max-w-[160px]">
+                        <span className="truncate max-w-40">
                           {tab.title}
                           {tab.isDirty && " •"}
                         </span>

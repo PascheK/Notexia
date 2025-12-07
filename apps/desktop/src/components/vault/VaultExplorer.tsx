@@ -1,5 +1,6 @@
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
+import { useDroppable } from "@dnd-kit/core";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
+import { ROOT_DROP_ID } from "@/lib/explorer/dnd-model";
 
 export function VaultExplorer() {
   const vaultPath = useVaultStore((s) => s.vaultPath);
@@ -126,6 +128,7 @@ export function VaultExplorer() {
     const base = resolveParentDir(target);
     if (!base) return;
     const name = window.prompt("Nom du dossier");
+    console.log(name);
     if (!name) return;
     await createFolder(base, name);
   };
@@ -204,6 +207,12 @@ export function VaultExplorer() {
 
 
   const contextNode = contextTarget;
+
+  // DnD: root drop zone
+  const rootDroppable = useDroppable({
+    id: ROOT_DROP_ID,
+    data: { type: "root" as const },
+  });
 
   const emptyState = (
     <div className="text-sm text-app-fg-muted px-3 py-4">
@@ -309,10 +318,14 @@ export function VaultExplorer() {
             }
           >
             <div
+              ref={rootDroppable.setNodeRef}
               className="flex-1 min-h-0 overflow-hidden relative"
+              style={{
+                backgroundColor: rootDroppable.isOver ? "rgba(110,86,207,0.08)" : undefined,
+              }}
             >
               {busy && (
-                <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 px-3 py-2 text-[11px] text-app-fg-muted bg-gradient-to-b from-app-surface-alt/80 to-transparent pointer-events-none">
+                <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 px-3 py-2 text-[11px] text-app-fg-muted bg-linear-to-b from-app-surface-alt/80 to-transparent pointer-events-none">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   Mise à jour…
                 </div>

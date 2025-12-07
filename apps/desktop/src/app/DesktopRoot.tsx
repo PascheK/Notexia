@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 
 import { AppShell } from "./AppShell";
 import { SideRail } from "./SideRail";
@@ -22,6 +23,11 @@ import type { AppConfig } from "@/config/app-config";
 import type { SpaceRegistryEntry } from "@/config/space-registry";
 import { createInitialLayout } from "@/lib/editor/layout";
 import { openNoteInLayout } from "@/lib/editor/actions";
+import { 
+  type ExplorerDndItem, 
+  type EditorDropZoneData,
+  ROOT_DROP_ID
+} from "@/lib/explorer/dnd-model";
 
 const labelFromPath = (path: string) => {
   const parts = path.split(/[/\\]/).filter(Boolean);
@@ -44,6 +50,65 @@ export function DesktopRoot({
   onCreateSpace
 }: DesktopRootProps) {
   const [mode, setMode] = useState<"view" | "edit">("view");
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  
+  const sensors = useSensors(useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 }
+  }));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDragId(null);
+    
+    if (!over) return;
+
+    const source = active.data.current as ExplorerDndItem | undefined;
+    if (!source) return;
+
+    // Case 1: Drop on explorer (folder or root)
+    if (over.id === ROOT_DROP_ID) {
+      if (import.meta.env.DEV) {
+        console.log("[DND explorer] move to root", source.path);
+      }
+      // TODO: implement actual FS move via Tauri
+      return;
+    }
+
+    const overData = over.data.current as ExplorerDndItem | EditorDropZoneData | undefined;
+    if (!overData) return;
+
+    // Case 2: Drop on a folder in explorer
+    if ('type' in overData && (overData.type === "folder" || overData.type === "file")) {
+      const target = overData as ExplorerDndItem;
+      if (target.type === "folder") {
+        if (import.meta.env.DEV) {
+          console.log("[DND explorer] move", {
+            from: source.path,
+            to: target.path,
+            targetType: target.type,
+          });
+        }
+        // TODO: implement actual FS move via Tauri + refresh
+      }
+      return;
+    }
+
+    // Case 3: Drop on editor zones
+    if ('disposition' in overData) {
+      const editorDrop = overData as EditorDropZoneData;
+      if (source.type !== "file") return;
+      
+      if (import.meta.env.DEV) {
+        console.log("[DND editor] open file", {
+          path: source.path,
+          disposition: editorDrop.disposition,
+        });
+      }
+      
+      void openNoteInLayout(source.path, editorDrop.disposition);
+      return;
+    }
+  };
 
   const activeEditorTab = useEditorStore((state) => {
     const pane =
@@ -100,9 +165,14 @@ export function DesktopRoot({
   }, [activeSpace?.path, initialConfig?.activeVaultPath]);
 
   return (
-    <AppShell
-      sideRail={<SideRail />}
-      sidebar={<VaultExplorer />}
+    <DndContext
+      sensors={sensors}
+      onDragStart={({ active }) => setActiveDragId(String(active.id))}
+      onDragEnd={handleDragEnd}
+    >
+      <AppShell
+        sideRail={<SideRail />}
+        sidebar={<VaultExplorer />}
       topBar={
         <div className="flex items-center justify-between w-full">
           <TopBar
@@ -167,5 +237,14 @@ export function DesktopRoot({
         </ContextMenu>
       </div>
     </AppShell>
+    
+    <DragOverlay>
+      {activeDragId ? (
+        <div className="px-2 py-1.5 rounded-md border border-app-border/40 bg-app-surface text-app-fg text-xs shadow-lg">
+          {activeDragId.replace('explorer:', '')}
+        </div>
+      ) : null}
+    </DragOverlay>
+  </DndContext>
   );
 }
