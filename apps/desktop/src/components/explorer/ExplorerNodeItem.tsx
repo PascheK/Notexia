@@ -124,7 +124,7 @@ export function ExplorerNodeItem({
   const isDragging = draggable.isDragging;
   const isOverDrop = droppable.isOver;
   const transform = draggable.transform;
-  
+
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
@@ -159,13 +159,15 @@ export function ExplorerNodeItem({
         data-fs-node="true"
         data-path={node.path}
         className={[
-          "group flex flex-row items-center justify-between gap-2 py-1.5 pr-2 rounded-md text-sm transition-colors",
+          "group flex flex-row items-center justify-between gap-2 py-1.5 pr-2 rounded-md text-sm",
+          "transition-colors duration-150",
           isActive
-            ? "bg-app-accent-soft/60 text-app-fg border border-app-border/50"
-            : "text-app-fg-muted hover:bg-app-surface-alt hover:text-app-fg",
-          isOverDrop && node.isDir && "bg-app-accent/10 border border-app-accent/40",
+            ? "bg-app-surface-alt text-app-fg border border-app-border/70 shadow-sm"
+            : "text-app-fg-muted hover:bg-app-surface-alt/60 hover:text-app-fg",
+          isOverDrop && node.isDir && "ring-1 ring-app-accent/60 bg-app-accent/10",
+          isDragging && "bg-app-surface-alt/70 border border-app-border/60 opacity-70",
         ].join(" ")}
-        style={{ paddingLeft }}
+        style={{ paddingLeft, borderWidth: isActive || isOverDrop || isDragging ? 1 : 0 }}
         onContextMenu={(e) => onContextMenu(e, node)}
         onClick={handleClick}
         onKeyDown={(e) => {

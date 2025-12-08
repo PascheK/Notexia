@@ -17,6 +17,7 @@ type EditorState = {
   openNote: (path: string, disposition: EditorOpenDisposition) => Promise<void>;
   setActiveTab: (tabId: EditorTabId) => void;
   setActivePane: (paneId: EditorPaneId) => void;
+  reorderTabs: (paneId: EditorPaneId, orderedIds: EditorTabId[]) => void;
   closeTab: (tabId: EditorTabId) => void;
   updateTabContent: (tabId: EditorTabId, content: string) => void;
   saveTab: (tabId: EditorTabId) => Promise<void>;
@@ -139,6 +140,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         activePaneId: paneId
       }
     }));
+  },
+
+  reorderTabs: (paneId: EditorPaneId, orderedIds: EditorTabId[]) => {
+    set((state) => {
+      const paneIndex = state.layout.panes.findIndex((pane) => pane.id === paneId);
+      if (paneIndex === -1) return state;
+
+      const pane = state.layout.panes[paneIndex];
+      const normalized = orderedIds.filter((id) => pane.tabs.includes(id));
+      const remaining = pane.tabs.filter((id) => !normalized.includes(id));
+      const tabs = [...normalized, ...remaining];
+      const activeTabId =
+        pane.activeTabId && tabs.includes(pane.activeTabId)
+          ? pane.activeTabId
+          : tabs[0] ?? null;
+
+      const panes = state.layout.panes.map((p, idx) =>
+        idx === paneIndex ? { ...p, tabs, activeTabId } : p
+      );
+
+      return {
+        layout: { ...state.layout, panes }
+      };
+    });
   },
 
   closeTab: (tabId: EditorTabId) => {

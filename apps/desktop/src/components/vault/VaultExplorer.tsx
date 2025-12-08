@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,6 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -49,6 +41,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  FolderOpen,
 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { ROOT_DROP_ID } from "@/lib/explorer/dnd-model";
@@ -244,16 +237,6 @@ export function VaultExplorer() {
     data: { type: "root" as const },
   });
 
-  const emptyState = (
-    <div className="text-sm text-app-fg-muted px-3 py-4">
-      {searchTerm
-        ? `Aucun résultat pour "${searchTerm}".`
-        : vaultPath
-          ? "Aucun fichier dans cet espace. Clic droit ici pour créer un fichier ou un dossier."
-          : "Ouvre un vault pour afficher son contenu."}
-    </div>
-  );
-
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex flex-col h-full min-h-0 bg-app-surface text-xs border-r border-app-border/60">
@@ -264,7 +247,7 @@ export function VaultExplorer() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-app-fg-muted hover:text-app-fg"
+                  className="h-8 w-8 text-app-fg-muted hover:text-app-fg transition-colors duration-150 active:scale-[0.98] focus-visible:ring-1 focus-visible:ring-app-accent/60"
                   onClick={() => void handleCreateFile()}
                   disabled={!vaultPath || busy}
                 >
@@ -278,7 +261,7 @@ export function VaultExplorer() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-app-fg-muted hover:text-app-fg"
+                  className="h-8 w-8 text-app-fg-muted hover:text-app-fg transition-colors duration-150 active:scale-[0.98] focus-visible:ring-1 focus-visible:ring-app-accent/60"
                   onClick={() => void handleCreateFolder()}
                   disabled={!vaultPath || busy}
                 >
@@ -292,7 +275,7 @@ export function VaultExplorer() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-app-fg-muted hover:text-app-fg"
+                  className="h-8 w-8 text-app-fg-muted hover:text-app-fg transition-colors duration-150 active:scale-[0.98] focus-visible:ring-1 focus-visible:ring-app-accent/60"
                   onClick={() =>
                     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
                   }
@@ -311,7 +294,7 @@ export function VaultExplorer() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-app-fg-muted hover:text-app-fg"
+                  className="h-8 w-8 text-app-fg-muted hover:text-app-fg transition-colors duration-150 active:scale-[0.98] focus-visible:ring-1 focus-visible:ring-app-accent/60"
                   onClick={toggleAllExpanded}
                   disabled={!vaultPath}
                 >
@@ -333,12 +316,12 @@ export function VaultExplorer() {
 
         <div className="px-2 py-2 border-b border-app-border/60 bg-app-surface">
           <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher dans cet espace..."
-            className="h-9 text-xs bg-app-surface-alt border-app-border text-app-fg placeholder:text-app-fg-muted"
-          />
-        </div>
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Rechercher dans cet espace..."
+          className="h-9 text-xs bg-app-surface-alt border-app-border text-app-fg placeholder:text-app-fg-muted focus-visible:ring-1 focus-visible:ring-app-accent/60 transition-colors duration-150"
+        />
+      </div>
 
         <ContextMenu>
           <ContextMenuTrigger
@@ -349,10 +332,13 @@ export function VaultExplorer() {
           >
             <div
               ref={rootDroppable.setNodeRef}
-              className="flex-1 min-h-0 overflow-hidden relative"
-              style={{
-                backgroundColor: rootDroppable.isOver ? "rgba(110,86,207,0.08)" : undefined,
-              }}
+              data-drop-root="true"
+              className={[
+                "flex-1 min-h-0 overflow-hidden relative",
+                rootDroppable.isOver
+                  ? "ring-1 ring-app-accent/60 bg-app-accent/5"
+                  : ""
+              ].join(" ")}
             >
               {busy && (
                 <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 px-3 py-2 text-[11px] text-app-fg-muted bg-linear-to-b from-app-surface-alt/80 to-transparent pointer-events-none">
@@ -363,30 +349,68 @@ export function VaultExplorer() {
 
               <ScrollArea className="h-full">
                 <div className="p-2 space-y-1">
-                  {visibleTree.length
-                    ? visibleTree.map((node) => (
-                        <ExplorerNodeItem
-                          key={node.path}
-                          node={node}
-                          depth={0}
-                          expandedPaths={expandedPaths}
-                          forceExpanded={forceExpanded}
-                          selectedPath={selectedPath}
-                          searchTerm={searchTerm}
-                          editingPath={editingPath}
-                          renameDraft={renameDraft}
-                          onRenameDraftChange={setRenameDraft}
-                          onToggleExpand={handleToggleExpand}
-                          onSelect={handleSelect}
-                          onContextMenu={handleContextMenu}
-                          onSubmitRename={handleSubmitRename}
-                          onCancelRename={() => {
-                            setEditingPath(null);
-                            setRenameDraft("");
-                          }}
-                        />
-                      ))
-                    : emptyState}
+                  {visibleTree.length ? (
+                    visibleTree.map((node) => (
+                      <ExplorerNodeItem
+                        key={node.path}
+                        node={node}
+                        depth={0}
+                        expandedPaths={expandedPaths}
+                        forceExpanded={forceExpanded}
+                        selectedPath={selectedPath}
+                        searchTerm={searchTerm}
+                        editingPath={editingPath}
+                        renameDraft={renameDraft}
+                        onRenameDraftChange={setRenameDraft}
+                        onToggleExpand={handleToggleExpand}
+                        onSelect={handleSelect}
+                        onContextMenu={handleContextMenu}
+                        onSubmitRename={handleSubmitRename}
+                        onCancelRename={() => {
+                          setEditingPath(null);
+                          setRenameDraft("");
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-app-border/60 bg-app-surface-alt/40 px-3 py-6 text-center text-app-fg-muted">
+                      <div className="mx-auto mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-app-surface text-app-fg">
+                        <FolderOpen className="h-5 w-5" />
+                      </div>
+                      <p className="text-sm mb-1">
+                        {searchTerm
+                          ? `Aucun résultat pour "${searchTerm}"`
+                          : "Aucun fichier dans ce vault"}
+                      </p>
+                      <p className="text-[11px] text-app-fg-muted/80 mb-3">
+                        {vaultPath
+                          ? "Crée un fichier ou un dossier pour commencer."
+                          : "Ouvre un vault pour afficher son contenu."}
+                      </p>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs border-app-border/60"
+                          onClick={() => void handleCreateFile()}
+                          disabled={!vaultPath}
+                        >
+                          <FilePlus className="h-4 w-4 mr-1" />
+                          Nouveau fichier
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs"
+                          onClick={() => void handleCreateFolder()}
+                          disabled={!vaultPath}
+                        >
+                          <FolderPlus className="h-4 w-4 mr-1" />
+                          Nouveau dossier
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             </div>
